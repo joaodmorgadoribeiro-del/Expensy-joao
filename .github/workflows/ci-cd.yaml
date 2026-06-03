@@ -111,26 +111,19 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./expensy_frontend
-          dockerfile: ./expensy_frontend/Dockerfile
           push: true
           tags: |
             ${{ env.ACR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:latest
             ${{ env.ACR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.FRONTEND_IMAGE }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.FRONTEND_IMAGE }}:${{ env.IMAGE_TAG }}
 
       - name: Build & Push Backend
         uses: docker/build-push-action@v5
         with:
           context: ./expensy_backend
-          dockerfile: ./expensy_backend/Dockerfile
           push: true
           tags: |
             ${{ env.ACR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
             ${{ env.ACR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.BACKEND_IMAGE }}:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }}
-
   # ============================================================
   # JOB 4 - DEPLOY TO AKS
   # ============================================================

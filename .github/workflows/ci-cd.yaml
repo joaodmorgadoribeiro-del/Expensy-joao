@@ -10,7 +10,6 @@ on:
 
 env:
   ACR_REGISTRY: expensynacr.azurecr.io
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   FRONTEND_IMAGE: expensy-app
   BACKEND_IMAGE: expensy-backend
   AKS_CLUSTER: joaocluster
@@ -28,23 +27,15 @@ jobs:
     defaults:
       run:
         working-directory: ./expensy_frontend
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: expensy_frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build
-        run: npm run build
+      - run: npm install
+      - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
 
@@ -57,45 +48,27 @@ jobs:
     defaults:
       run:
         working-directory: ./expensy_backend
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: expensy_backend/package-lock.json
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build
-        run: npm run build
-
-      - name: Run tests
-        run: npm test --if-present
+      - run: npm install
+      - run: npm run build
+      - run: npm test --if-present
 
   # ============================================================
-  # JOB 3 - DOCKER BUILD & PUSH
+  # JOB 3 - DOCKER BUILD & PUSH (main only)
   # ============================================================
   docker-build-push:
     name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: [build-frontend, build-backend]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: actions/checkout@v4
 
       - name: Login to ACR
         uses: azure/docker-login@v1
@@ -124,55 +97,33 @@ jobs:
           tags: |
             ${{ env.ACR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
             ${{ env.ACR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }}
-   # ============================================================
-  # JOB 4 - DEPLOY TO AKS (Manual)
+
+  # ============================================================
+  # JOB 4 - DEPLOY TO AKS (main only)
   # ============================================================
   deploy:
     name: Deploy to AKS
     runs-on: ubuntu-latest
     needs: [docker-build-push]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment:
-      name: production
-    permissions:
-      contents: read
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Azure CLI Login
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az login --username ${{ secrets.AZURE_USERNAME }} --password ${{ secrets.AZURE_PASSWORD }}
-            az aks get-credentials \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --name ${{ env.AKS_CLUSTER }} \
-              --overwrite-existing
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
         with:
           version: 'latest'
 
-      - name: Set image tag
-        run: echo "IMAGE_TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
-
-      - name: Helm upgrade
+      - name: Deploy summary
         run: |
-          helm upgrade ${{ env.HELM_RELEASE }} ./k8s/expensy-chart \
-            --namespace ${{ env.NAMESPACE }} \
-            --set frontend.image.tag=${{ env.IMAGE_TAG }} \
-            --set backend.image.tag=${{ env.IMAGE_TAG }} \
-            --set secrets.mongoPassword=${{ secrets.MONGO_PASSWORD }} \
-            --set secrets.redisPassword=${{ secrets.REDIS_PASSWORD }} \
-            --set secrets.jwtSecret=${{ secrets.JWT_SECRET }} \
-            --set secrets.nextauthSecret=${{ secrets.NEXTAUTH_SECRET }} \
-            --set secrets.nextauthUrl=${{ secrets.NEXTAUTH_URL }} \
-            --wait \
-            --timeout 5m
-
-      - name: Verify deployment
-        run: kubectl get pods -n ${{ env.NAMESPACE }}
+          echo "================================================"
+          echo "✅ Images pushed to ACR!"
+          echo "Frontend: ${{ env.ACR_REGISTRY }}/${{ env.FRONTEND_IMAGE }}:${{ env.IMAGE_TAG }}"
+          echo "Backend:  ${{ env.ACR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }}"
+          echo "================================================"
+          echo "▶ Run manually to deploy to AKS:"
+          echo "helm upgrade expensy ./k8s/expensy-chart -n expensy"
+          echo "================================================"

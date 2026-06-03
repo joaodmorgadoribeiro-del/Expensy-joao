@@ -124,8 +124,8 @@ jobs:
           tags: |
             ${{ env.ACR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
             ${{ env.ACR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }}
-  # ============================================================
-  # JOB 4 - DEPLOY TO AKS
+   # ============================================================
+  # JOB 4 - DEPLOY TO AKS (Manual)
   # ============================================================
   deploy:
     name: Deploy to AKS
@@ -134,28 +134,23 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: https://expensy.local
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Azure Login
-        uses: azure/login@v1
+      - name: Azure CLI Login
+        uses: azure/cli@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Get AKS credentials
-        run: |
-          az aks get-credentials \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --name ${{ env.AKS_CLUSTER }} \
-            --overwrite-existing
+          azcliversion: latest
+          inlineScript: |
+            az login --username ${{ secrets.AZURE_USERNAME }} --password ${{ secrets.AZURE_PASSWORD }}
+            az aks get-credentials \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --name ${{ env.AKS_CLUSTER }} \
+              --overwrite-existing
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
@@ -169,7 +164,6 @@ jobs:
         run: |
           helm upgrade ${{ env.HELM_RELEASE }} ./k8s/expensy-chart \
             --namespace ${{ env.NAMESPACE }} \
-            --create-namespace \
             --set frontend.image.tag=${{ env.IMAGE_TAG }} \
             --set backend.image.tag=${{ env.IMAGE_TAG }} \
             --set secrets.mongoPassword=${{ secrets.MONGO_PASSWORD }} \
@@ -181,6 +175,4 @@ jobs:
             --timeout 5m
 
       - name: Verify deployment
-        run: |
-          kubectl get pods -n ${{ env.NAMESPACE }}
-          kubectl get svc -n ${{ env.NAMESPACE }}
+        run: kubectl get pods -n ${{ env.NAMESPACE }}

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: expensy-backend-service
+  namespace: expensy
+  labels:
+    app: expensy-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: expensy-backend
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000

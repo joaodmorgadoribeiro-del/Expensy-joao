@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: expensy-deployment
+  namespace: expensy
+  labels:
+    app: expensy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: expensy
+  template:
+    metadata:
+      labels:
+        app: expensy
+    spec:
+      containers:
+        - name: expensy
+          image: expensynacr.azurecr.io/expensy-app:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+          # Variáveis sensíveis via Secret
+          envFrom:
+            - secretRef:
+                name: expensy-secret
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10

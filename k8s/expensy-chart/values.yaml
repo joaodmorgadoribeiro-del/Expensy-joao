@@ -1,0 +1,86 @@
+# ---- Global ----
+namespace: expensy
+
+# ---- Frontend (Next.js) ----
+frontend:
+  name: expensy-frontend
+  image:
+    repository: expensynacr.azurecr.io/expensy-app
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+  port: 3000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# ---- Backend (Node/Express) ----
+backend:
+  name: expensy-backend
+  image:
+    repository: expensynacr.azurecr.io/expensy-backend
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+  port: 5000
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "125m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+# ---- MongoDB ----
+mongo:
+  name: mongo
+  image:
+    repository: mongo
+    tag: "7.0"
+  port: 27017
+  database: expensy
+  storage: 1Gi
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# ---- Redis ----
+redis:
+  name: redis
+  image:
+    repository: redis
+    tag: "7.2-alpine"
+  port: 6379
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "100m"
+    limits:
+      memory: "128Mi"
+      cpu: "200m"
+
+# ---- Secrets ----
+secrets:
+  mongoUsername: "root"
+  mongoPassword: "example"
+  redisPassword: "someredispassword"
+  jwtSecret: "admin123"
+  nextauthSecret: "admin123"
+  nextauthUrl: "http://localhost:3000"
+  nodeEnv: "production"
+
+# ---- Ingress ----
+ingress:
+  enabled: true
+  className: nginx
+  host: expensy.local
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /

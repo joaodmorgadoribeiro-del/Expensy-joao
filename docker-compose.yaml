@@ -1,0 +1,78 @@
+services:
+
+  # ---- MongoDB ----
+  mongo:
+    image: mongo:7.0
+    container_name: expensy-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: expensy
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - expensy-network
+
+  # ---- Redis ----
+  redis:
+    image: redis:7.2-alpine
+    container_name: expensy-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - expensy-network
+
+  # ---- Backend (Node/Express) ----
+  backend:
+    build:
+      context: ./expensy_backend
+      dockerfile: Dockerfile
+    container_name: expensy-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGODB_URI: ${MONGODB_URI}
+      REDIS_URL: ${REDIS_URL}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - expensy-network
+
+  # ---- Frontend (Next.js) ----
+  frontend:
+    build:
+      context: ./expensy_frontend
+      dockerfile: Dockerfile
+    container_name: expensy-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXT_PUBLIC_API_URL: http://backend:5000
+    depends_on:
+      - backend
+    networks:
+      - expensy-network
+
+volumes:
+  mongo-data:
+  redis-data:
+
+networks:
+  expensy-network:
+    driver: bridge

@@ -135,6 +135,9 @@ jobs:
     environment:
       name: production
       url: https://expensy.local
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout code

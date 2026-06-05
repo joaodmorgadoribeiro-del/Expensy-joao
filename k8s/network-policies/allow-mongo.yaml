@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-mongo
+  namespace: expensy
+spec:
+  podSelector:
+    matchLabels:
+      role: mongo
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: expensy-backend
+      ports:
+        - protocol: TCP
+          port: 27017
+  egress:
+    # DNS
+    - ports:
+        - protocol: UDP
+          port: 53

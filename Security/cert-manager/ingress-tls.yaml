@@ -2,26 +2,32 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: expensy-ingress
-  namespace: {{ .Values.namespace }}
+  namespace: expensy
   annotations:
-    {{- toYaml .Values.ingress.annotations | nindent 4 }}
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
-  ingressClassName: {{ .Values.ingress.className }}
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - expensy.ironhack.com   
+      secretName: expensy-tls
   rules:
-    - host: {{ .Values.ingress.host }}
+    - host: expensy.ironhack.com 
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: expensy-service       
+                name: expensy-frontend
                 port:
                   number: 80
           - path: /api
             pathType: Prefix
             backend:
               service:
-                name: expensy-backend-service  
+                name: expensy-backend
                 port:
                   number: 5000

@@ -1,5 +1,4 @@
 # .github/workflows/ci-cd.yaml
-
 name: Expensy CI/CD Pipeline
 
 on:
@@ -58,9 +57,37 @@ jobs:
       - run: npm install
       - run: npm run build
       - run: npm test --if-present
+  
+  # ============================================================
+  # JOB 4 - SONARQUBE ANALYSIS
+  # ============================================================
+  sonarqube:
+    name: SonarQube Analysis
+    runs-on: ubuntu-latest
+    needs: [build-frontend, build-backend]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarQube Scan - Backend
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          projectBaseDir: ./expensy_backend
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+
+      - name: SonarQube Scan - Frontend
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          projectBaseDir: ./expensy_frontend
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
 
   # ============================================================
-  # JOB 3 - DOCKER BUILD & PUSH (main only)
+  # JOB 5 - DOCKER BUILD & PUSH (main only)
   # ============================================================
   docker-build-push:
     name: Docker Build & Push
@@ -99,7 +126,7 @@ jobs:
             ${{ env.ACR_REGISTRY }}/${{ env.BACKEND_IMAGE }}:${{ env.IMAGE_TAG }}
 
   # ============================================================
-  # JOB 4 - DEPLOY TO AKS (main only)
+  # JOB 5 - DEPLOY TO AKS (main only)
   # ============================================================
   deploy:
     name: Deploy to AKS

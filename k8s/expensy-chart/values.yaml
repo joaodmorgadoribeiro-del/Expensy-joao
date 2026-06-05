@@ -76,11 +76,14 @@ secrets:
   nextauthSecret: "admin123"
   nextauthUrl: "http://localhost:3000"
   nodeEnv: "production"
+  sonarDbUser: "sonarqube"
+  sonarDbPassword: "admin123"
+
 
 # ---- Ingress ----
 ingress:
   enabled: true
   className: nginx
-  host: expensy.local
+  host: expensy.ironhack.com
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
